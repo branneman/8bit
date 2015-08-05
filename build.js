@@ -22,10 +22,10 @@ function getTitle(name) {
         .replace(/(?:\b)\w/g, toUpper); // capitalize words
 }
 
-function makeEntry(src) {
-    var name = getName(src);
+function makeCharacter(char) {
+    var name = getName(char);
     return {
-        src: 'src/' + src,
+        src: 'src/' + char,
         img: 'img/' + name,
         title: getTitle(name)
     };
@@ -41,5 +41,25 @@ function jsonp(eightbit) {
         'var eightbit = ' + JSON.stringify(eightbit, null, 2) + ';';
 }
 
-var eightbit = glob.sync('src/*.jpg').map(base).map(makeEntry).map(makeCopy);
+function svg(eightbit) {
+    var w = 500;
+    var ns = 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"';
+    var svg = '<svg width="$w" height="$h" $ns>\n'
+        .replace(/\$w/g, w * 27)
+        .replace(/\$h/g, w * 26)
+        .replace('$ns', ns);
+    eightbit.forEach(function(char, index) {
+        var base64 = new Buffer(fs.readFileSync(char.img)).toString('base64');
+        svg += '  <image x="$x" y="$y" width="$w" height="$w" xlink:href="data:image/jpeg;base64,$b"/>\n'
+            .replace(/\$w/g, w)
+            .replace('$x', (index % 27) * w)
+            .replace('$y', parseInt(index / 27, 10) * w)
+            .replace('$b', base64);
+    });
+    return svg + '</svg>';
+}
+
+var eightbit = glob.sync('src/*.jpg').map(base).map(makeCharacter).map(makeCopy);
+
 fs.writeFileSync('eightbit.jsonp', jsonp(eightbit));
+fs.writeFileSync('eightbit.svg', svg(eightbit));
